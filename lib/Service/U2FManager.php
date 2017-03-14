@@ -70,11 +70,23 @@ class U2FManager {
 		return $registrationObjects;
 	}
 
-	public function isEnabled(IUser $user) {
+	/**
+	 * @param IUser $user
+	 * @return array
+	 */
+	public function getDevices(IUser $user) {
 		$registrations = $this->mapper->findRegistrations($user);
-		return count($registrations) > 0;
+		return array_map(function(Registration $reg) {
+			return [
+				'id' => $reg->getId(),
+				'name' => $reg->getName(),
+			];
+		}, $registrations);
 	}
 
+	/**
+	 * @param IUser $user
+	 */
 	public function disableU2F(IUser $user) {
 		// TODO: use single query instead
 		foreach ($this->mapper->findRegistrations($user) as $registration) {
@@ -83,6 +95,10 @@ class U2FManager {
 		}
 	}
 
+	/**
+	 * @param IUser $user
+	 * @return array
+	 */
 	public function startRegistration(IUser $user) {
 		$u2f = $this->getU2f();
 		$data = $u2f->getRegisterData($this->getRegistrations($user));
@@ -99,7 +115,13 @@ class U2FManager {
 		];
 	}
 
-	public function finishRegistration(IUser $user, $registrationData, $clientData) {
+	/**
+	 * @param IUser $user
+	 * @param string $registrationData
+	 * @param string $clientData
+	 * @param string $name
+	 */
+	public function finishRegistration(IUser $user, $registrationData, $clientData, $name = null) {
 		$this->logger->debug($registrationData);
 		$this->logger->debug($clientData);
 
@@ -117,10 +139,16 @@ class U2FManager {
 		$registration->setPublicKey($reg->publicKey);
 		$registration->setCertificate($reg->certificate);
 		$registration->setCounter($reg->counter);
+		$registration->setName($name);
 		$this->mapper->insert($registration);
 		$this->publishEvent($user, 'u2f_device_added');
 
 		$this->logger->debug(json_encode($reg));
+
+		return [
+			'id' => $registration->getId(),
+			'name' => $registration->getName(),
+		];
 	}
 
 	/**

@@ -16,6 +16,7 @@ require_once(__DIR__ . '/../../vendor/yubico/u2flib-server/src/u2flib_server/U2F
 
 use OCA\TwoFactorU2F\Service\U2FManager;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -41,16 +42,18 @@ class SettingsController extends Controller {
 
 	/**
 	 * @NoAdminRequired
+	 * @return JSONResponse
 	 */
 	public function state() {
 		return [
-			'enabled' => $this->manager->isEnabled($this->userSession->getUser())
+			'devices' => $this->manager->getDevices($this->userSession->getUser())
 		];
 	}
 
 	/**
 	 * @NoAdminRequired
 	 * @PasswordConfirmationRequired
+	 * @return JSONResponse
 	 */
 	public function disable() {
 		$this->manager->disableU2F($this->userSession->getUser());
@@ -60,6 +63,7 @@ class SettingsController extends Controller {
 	 * @NoAdminRequired
 	 * @PasswordConfirmationRequired
 	 * @UseSession
+	 * @return JSONResponse
 	 */
 	public function startRegister() {
 		return $this->manager->startRegistration($this->userSession->getUser());
@@ -71,9 +75,11 @@ class SettingsController extends Controller {
 	 *
 	 * @param string $registrationData
 	 * @param string $clientData
+	 * @param string|null $name device name, given by user
+	 * @return JSONResponse
 	 */
-	public function finishRegister($registrationData, $clientData) {
-		$this->manager->finishRegistration($this->userSession->getUser(), $registrationData, $clientData);
+	public function finishRegister($registrationData, $clientData, $name = null) {
+		return $this->manager->finishRegistration($this->userSession->getUser(), $registrationData, $clientData, $name);
 	}
 
 }

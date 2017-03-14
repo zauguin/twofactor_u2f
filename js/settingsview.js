@@ -8,18 +8,30 @@
 	var TEMPLATE = ''
 		+ '<div>'
 		+ '	{{#unless loading}}'
-		+ '	<input type="checkbox" class="checkbox" id="u2f-enabled" {{#if enabled}}checked{{/if}}>'
-		+ '	<label for="u2f-enabled">' + t('twofactor_u2f', 'Use U2F device') + '</label>'
+		+ '     <div>'
+		+ '         {{#unless devices.length}}'
+		+ '         <span>' + t('twofactor_u2f', 'No U2F devices configured.') + '</span>'
+		+ '         {{/unless}}'
+		+ '         {{#each devices}}'
+		+ '         <div class="u2f-device">'
+		+ '             <span class="icon-u2f-device"></span>'
+		+ '             <span data-u2f-id="{{id}}">{{name}}</span>'
+		+ '         </div>'
+		+ '         {{/each}}'
+		+ '     </div>'
+		+ '     <input  id="u2f-device-name" type="text" placeholder="Name your device">'
+		+ '	<button id="add-u2f-device">' + t('twofactor_u2f', 'Add U2F device') + '</button><br>'
+		+ '     <span><small>' + t('twofactor_u2f', 'You can add as many devices as you like. It is recommended to give each device a distinct name.') + '</small></span>'
 		+ '	{{else}}'
-		+ '	<span class="icon-loading-small u2f-loading"></span>'
-		+ '	<span>' + t('twofactor_u2f', 'Use U2F device') + '</span>'
+		+ '     <span class="icon-loading-small u2f-loading"></span>'
+		+ '	<span>' + t('twofactor_u2f', 'Adding a new device …') + '</span>'
 		+ '	{{/unless}}'
 		+ '</div>';
 
 	/**
-	 * @class 
+	 * @class
 	 */
-	var SettingsView = Backbone.View.extend({
+	var SettingsView = Backbone.View.extend(/** @lends Backbone.View */ {
 
 		/**
 		 * @type {function|undefined}
@@ -29,12 +41,12 @@
 		/**
 		 * @type {boolean}
 		 */
-		_enabled: false,
+		_loading: false,
 
 		/**
-		 * @type {boolean}
+		 * @type {Object[]}
 		 */
-		_loading: false,
+		_devices: undefined,
 
 		/**
 		 * @param {object} data
@@ -48,7 +60,7 @@
 		},
 
 		events: {
-			'change #u2f-enabled': '_onToggleEnabled'
+			'click #add-u2f-device': '_onAddU2FDevice'
 		},
 
 		/**
@@ -56,8 +68,8 @@
 		 */
 		render: function () {
 			this.$el.html(this.template({
-				enabled: this._enabled,
-				loading: this._loading
+				loading: this._loading,
+				devices: this._devices
 			}));
 		},
 
@@ -77,10 +89,10 @@
 		 */
 		load: function () {
 			return this._getServerState().then(function (data) {
-				this._enabled = data.enabled;
+				this._devices = data.devices;
 				this.render();
-			}.bind(this)).catch(function (e) {
-				OC.Notification.showTemporary('Could not get U2F enabled/disabled state.');
+			}.bind(this), function () {
+				OC.Notification.showTemporary('Could not load list of U2F devices.');
 			}).catch(console.error.bind(this));
 		},
 
@@ -88,24 +100,13 @@
 		 * @private
 		 * @returns {Promise}
 		 */
-		_onToggleEnabled: function () {
+		_onAddU2FDevice: function () {
 			if (this._loading) {
 				// Ignore event
 				return Promise.resolve();
 			}
 
-			var enabled = this.$('#u2f-enabled').is(':checked');
-
-			if (enabled === this._enabled) {
-				return Promise.resolve();
-			}
-			this._enabled = enabled;
-
-			if (enabled) {
-				return this._onRegister();
-			} else {
-				return this._onDisable();
-			}
+			return this._onRegister();
 		},
 
 		/**
@@ -113,6 +114,9 @@
 		 * @returns {Promise}
 		 */
 		_onRegister: function () {
+			var name = this.$('#u2f-device-name').val();
+
+			// Show loading feedback
 			this._loading = true;
 			this.render();
 
@@ -122,10 +126,15 @@
 				.then(function (data) {
 					return self._registerU2fDevice(data.req, data.sigs);
 				})
-				.then(this._finishRegisterOnServer)
+				.then(function (data) {
+					data.name = name;
+					return self._finishRegisterOnServer(data);
+				})
+				.then(function (newDevice) {
+					self._devices.push(newDevice);
+				})
 				.catch(function (e) {
 					OC.Notification.showTemporary(e.message);
-					self._enabled = false;
 				})
 				.then(function () {
 					self._loading = false;
@@ -223,7 +232,8 @@
 
 		/**
 		 * @private
-		 * @param {object} data
+		 * @param {Object} data
+		 * @param {string} data.name device name (specified by the user)
 		 * @returns {Promise}
 		 */
 		_finishRegisterOnServer: function (data) {
@@ -234,8 +244,9 @@
 			})).catch(function (e) {
 				console.error(e);
 				throw new Error(t('twofactor_u2f', 'Server error while trying to complete U2F device registration'));
-			}).then(function () {
+			}).then(function (data) {
 				$('.utf-register-info').slideUp();
+				return data;
 			});
 		}
 	});

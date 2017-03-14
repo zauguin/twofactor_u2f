@@ -90,14 +90,14 @@ class U2FManagerTest extends TestCase {
 		$user = $this->createMock(IUser::class);
 		$this->mockRegistrations($user, 2);
 
-		$this->assertTrue($this->manager->isEnabled($user));
+		$this->assertTrue($this->manager->getDevices($user));
 	}
 
 	public function testIsEnabledDisabled() {
 		$user = $this->createMock(IUser::class);
 		$this->mockRegistrations($user, 0);
 
-		$this->assertFalse($this->manager->isEnabled($user));
+		$this->assertFalse($this->manager->getDevices($user));
 	}
 
 	public function testDisableU2F() {

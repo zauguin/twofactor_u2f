@@ -160,16 +160,17 @@
 				return Promise.reject('Unknown u2f device');
 			}
 
-			this._requirePasswordConfirmation().then(function () {
+			return this._requirePasswordConfirmation().then(function () {
 				// Remove visually
 				this._devices.splice(this._devices.indexOf(device), 1);
 				this.render();
 
 				// Remove on server
 				return this._removeOnServer(device);
-			}.bind(this)).catch(function () {
+			}.bind(this)).catch(function (e) {
 				this._devices.push(device);
 				this.render();
+				console.error(e);
 				OC.Notification.showTemporary(t('twofactor_u2f', 'Could not remove your U2F device'));
 				throw new Error('Could not remove u2f device on server');
 			}.bind(this)).catch(function (e) {
@@ -222,40 +223,6 @@
 			})).catch(function (e) {
 				console.error(e);
 				throw new Error(t('twofactor_u2f', 'Server error while trying to add U2F device'));
-			});
-		},
-
-		/**
-		 * @private
-		 * @returns {Promise}
-		 */
-		_onDisable: function () {
-			this._loading = true;
-			this.render();
-
-			var self = this;
-			return this._requirePasswordConfirmation()
-				.then(this._disableU2fOnServer)
-				.catch(function (e) {
-					OC.Notification.showTemporary(e);
-				})
-				.then(function () {
-					self._loading = false;
-					self.render();
-				});
-		},
-
-		/**
-		 * @private
-		 * @returns {Promise}
-		 */
-		_disableU2fOnServer: function () {
-			var url = OC.generateUrl('apps/twofactor_u2f/settings/disable');
-			return Promise.resolve($.ajax(url, {
-				method: 'POST'
-			})).catch(function (e) {
-				console.error(e);
-				throw new Error(t('twofactor_u2f', 'Server error while disabling U2F'));
 			});
 		},
 

@@ -55,7 +55,6 @@
 
             <index>
                 <name>u2f_registrations_user_id</name>
-                <unique>true</unique>
                 <field>
                     <name>user_id</name>
                     <sorting>ascending</sorting>

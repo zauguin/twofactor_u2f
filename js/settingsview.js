@@ -15,7 +15,7 @@
 		+ '         {{#each devices}}'
 		+ '         <div class="u2f-device">'
 		+ '             <span class="icon-u2f-device"></span>'
-		+ '             <span data-u2f-id="{{id}}">{{name}}</span>'
+		+ '             <span data-u2f-id="{{id}}">{{#if name}}{{name}}{{else}}' + t('twofactor_u2f', 'Unnamed device') + '{{/if}}</span>'
 		+ '         </div>'
 		+ '         {{/each}}'
 		+ '     </div>'

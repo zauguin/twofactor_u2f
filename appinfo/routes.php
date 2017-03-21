@@ -26,11 +26,6 @@ return [
 			'verb' => 'GET'
 		],
 		[
-			'name' => 'settings#disable',
-			'url' => '/settings/disable',
-			'verb' => 'POST'
-		],
-		[
 			'name' => 'settings#startRegister',
 			'url' => '/settings/startregister',
 			'verb' => 'POST'

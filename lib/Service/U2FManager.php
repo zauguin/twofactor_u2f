@@ -91,6 +91,7 @@ class U2FManager {
 	public function removeDevice(IUser $user, $id) {
 		$reg = $this->mapper->findRegistration($user, $id);
 		$this->mapper->delete($reg);
+		$this->publishEvent($user, 'u2f_device_removed');
 	}
 
 	/**

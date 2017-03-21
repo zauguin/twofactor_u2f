@@ -53,15 +53,6 @@ class SettingsController extends Controller {
 	/**
 	 * @NoAdminRequired
 	 * @PasswordConfirmationRequired
-	 * @return JSONResponse
-	 */
-	public function disable() {
-		$this->manager->removeDevice($this->userSession->getUser());
-	}
-
-	/**
-	 * @NoAdminRequired
-	 * @PasswordConfirmationRequired
 	 * @UseSession
 	 * @return JSONResponse
 	 */

@@ -73,6 +73,7 @@
 
 		events: {
 			'click #add-u2f-device': '_onAddU2FDevice',
+			'keydown #u2f-device-name': '_onInputKeyDown',
 			'click .u2f-device .remove-device': '_onRemoveDevice'
 		},
 
@@ -132,6 +133,17 @@
 			}
 
 			return this._onRegister();
+		},
+
+		/**
+		 * @private
+		 * @param {Event} e
+		 */
+		_onInputKeyDown: function (e) {
+			if (e.which === 13) {
+				return this._onAddU2FDevice();
+			}
+			return Promise.resolve();
 		},
 
 		/**

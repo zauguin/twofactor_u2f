@@ -56,7 +56,7 @@ class SettingsController extends Controller {
 	 * @return JSONResponse
 	 */
 	public function disable() {
-		$this->manager->disableU2F($this->userSession->getUser());
+		$this->manager->removeDevice($this->userSession->getUser());
 	}
 
 	/**
@@ -80,6 +80,17 @@ class SettingsController extends Controller {
 	 */
 	public function finishRegister($registrationData, $clientData, $name = null) {
 		return $this->manager->finishRegistration($this->userSession->getUser(), $registrationData, $clientData, $name);
+	}
+
+	/**
+	 * @NoAdminRequired
+	 * @PasswordConfirmationRequired
+	 *
+	 * @param int $id
+	 * @return JSONResponse
+	 */
+	public function remove($id) {
+		return $this->manager->removeDevice($this->userSession->getUser(), $id);
 	}
 
 }

@@ -1,6 +1,6 @@
-/* global Backbone, Handlebars, OC, u2f, Promise */
+/* global Backbone, Handlebars, OC, u2f, Promise, _ */
 
-(function (OC, OCA, Backbone, Handlebars, $, u2f) {
+(function (OC, OCA, Backbone, Handlebars, $, _, u2f) {
 	'use strict';
 
 	OCA.TwoFactorU2F = OCA.TwoFactorU2F || {};
@@ -11,12 +11,23 @@
 		+ '     <div>'
 		+ '         {{#unless devices.length}}'
 		+ '         <span>' + t('twofactor_u2f', 'No U2F devices configured. You are not using U2F as second factor at the moment.') + '</span>'
-		+ '         {{/unless}}'
+		+ '         {{else}}'
 		+ '         <span>' + t('twofactor_u2f', 'The following devices are configured for U2F second-factor authentication:') + '</span>'
+		+ '         {{/unless}}'
 		+ '         {{#each devices}}'
-		+ '         <div class="u2f-device">'
+		+ '         <div class="u2f-device" data-u2f-id="{{id}}">'
 		+ '             <span class="icon-u2f-device"></span>'
-		+ '             <span data-u2f-id="{{id}}">{{#if name}}{{name}}{{else}}' + t('twofactor_u2f', 'Unnamed device') + '{{/if}}</span>'
+		+ '             <span>{{#if name}}{{name}}{{else}}' + t('twofactor_u2f', 'Unnamed device') + '{{/if}}</span>'
+		+ '             <span class="more">'
+		+ '                 <a class="icon icon-more"></a>'
+		+ '                 <div class="popovermenu">'
+		+ '                     <ul>'
+		+ '                         <li class="remove-device">'
+		+ '                             <a><span class="icon-delete"></span><span>' + t('twofactor_u2f', 'Remove') + '</span></a>'
+		+ '                         </li>'
+		+ '                     </ul>'
+		+ '                 </div>'
+		+ '             </span>'
 		+ '         </div>'
 		+ '         {{/each}}'
 		+ '     </div>'
@@ -61,17 +72,30 @@
 		},
 
 		events: {
-			'click #add-u2f-device': '_onAddU2FDevice'
+			'click #add-u2f-device': '_onAddU2FDevice',
+			'click .u2f-device .remove-device': '_onRemoveDevice'
 		},
 
 		/**
 		 * @returns {undefined}
 		 */
 		render: function () {
+			this._devices = _.sortBy(this._devices, function (device) {
+				// Underscore's stable sort requires a value for each item
+				return device.name || '';
+			});
+
 			this.$el.html(this.template({
 				loading: this._loading,
 				devices: this._devices
 			}));
+
+			_.each(this._devices, function (device) {
+				var $deviceEl = this.$('div[data-u2f-id="' + device.id + '"]');
+				OC.registerMenu($deviceEl.find('a.icon-more'), $deviceEl.find('.popovermenu'));
+			}, this);
+
+			return this;
 		},
 
 		/**
@@ -108,6 +132,38 @@
 			}
 
 			return this._onRegister();
+		},
+
+		/**
+		 * @private
+		 * @returns {Promise}
+		 */
+		_onRemoveDevice: function (e) {
+			var deviceId = $(e.target).closest('.u2f-device').data('u2f-id');
+			var device = _.find(this._devices, function (device) {
+				return device.id === deviceId;
+			}, this);
+			if (!device) {
+				console.error('Cannot remove u2f device: unkown');
+				return Promise.reject('Unknown u2f device');
+			}
+
+			this._requirePasswordConfirmation().then(function () {
+				// Remove visually
+				this._devices.splice(this._devices.indexOf(device), 1);
+				this.render();
+
+				// Remove on server
+				return this._removeOnServer(device);
+			}.bind(this)).catch(function () {
+				this._devices.push(device);
+				this.render();
+				OC.Notification.showTemporary(t('twofactor_u2f', 'Could not remove your U2F device'));
+				throw new Error('Could not remove u2f device on server');
+			}.bind(this)).catch(function (e) {
+				console.error('Unexpected error while removing the u2f device', e);
+				throw e;
+			});
 		},
 
 		/**
@@ -249,9 +305,28 @@
 				$('.utf-register-info').slideUp();
 				return data;
 			});
+		},
+
+		/**
+		 * @private
+		 * @param {Object} device
+		 * @returns {Promise}
+		 */
+		_removeOnServer: function (device) {
+			var url = OC.generateUrl('/apps/twofactor_u2f/settings/remove');
+
+			return Promise.resolve($.ajax(url, {
+				method: 'POST',
+				data: {
+					id: device.id
+				}
+			})).catch(function (e) {
+				console.error(e);
+				throw e;
+			});
 		}
 	});
 
 	OCA.TwoFactorU2F.SettingsView = SettingsView;
 
-})(OC, OCA, OC.Backbone, Handlebars, $, u2f);
+})(OC, OCA, OC.Backbone, Handlebars, $, _, u2f);

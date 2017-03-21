@@ -137,7 +137,7 @@ class U2FManagerTest extends TestCase {
 			->method('publish')
 			->with($this->equalTo($event));
 
-		$this->manager->disableU2F($user);
+		$this->manager->removeDevice($user);
 	}
 
 	public function testStartRegistrationFirstDevice() {

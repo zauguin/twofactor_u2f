@@ -86,13 +86,11 @@ class U2FManager {
 
 	/**
 	 * @param IUser $user
+	 * @param int $id device id
 	 */
-	public function disableU2F(IUser $user) {
-		// TODO: use single query instead
-		foreach ($this->mapper->findRegistrations($user) as $registration) {
-			$this->mapper->delete($registration);
-			$this->publishEvent($user, 'u2f_device_removed');
-		}
+	public function removeDevice(IUser $user, $id) {
+		$reg = $this->mapper->findRegistration($user, $id);
+		$this->mapper->delete($reg);
 	}
 
 	/**

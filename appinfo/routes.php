@@ -40,5 +40,10 @@ return [
 			'url' => '/settings/finishregister',
 			'verb' => 'POST'
 		],
+		[
+			'name' => 'settings#remove',
+			'url' => '/settings/remove',
+			'verb' => 'POST'
+		],
 	]
 ];
